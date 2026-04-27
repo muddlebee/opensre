@@ -1,0 +1,103 @@
+# On-demand full test matrix (Ubuntu + Windows) without quality/typecheck.
+#
+# Triggers:
+#   1. Actions → this workflow → "Run workflow" (pick branch)
+#   2. On a pull request, a trusted author comments: /ci extended
+#
+# Trusted authors: OWNER, MEMBER, or COLLABORATOR (not drive-by contributors).
+# Checks out refs/pull/<N>/head so fork PRs are tested at the PR tip.
+
+name: CI extended tests
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-extended-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  extended-tests:
+    name: extended test (${{ matrix.os }})
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (
+        github.event_name == 'issue_comment'
+        && github.event.issue.pull_request
+        && startsWith(github.event.comment.body, '/ci extended')
+        && (
+          github.event.comment.author_association == 'OWNER'
+          || github.event.comment.author_association == 'MEMBER'
+          || github.event.comment.author_association == 'COLLABORATOR'
+        )
+      )
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      JWT_TOKEN: ${{ secrets.JWT_TOKEN }}
+      TRACER_ORG_ID: ${{ secrets.TRACER_ORG_ID }}
+      TRACER_WEB_APP_URL: ${{ secrets.TRACER_WEB_APP_URL }}
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      LANGSMITH_ENDPOINT: ${{ secrets.LANGSMITH_ENDPOINT }}
+      LANGSMITH_PROJECT: ${{ secrets.LANGSMITH_PROJECT }}
+      LANGSMITH_TRACING: ${{ secrets.LANGSMITH_TRACING }}
+      GRAFANA_READ_TOKEN: ${{ secrets.GRAFANA_READ_TOKEN }}
+      GCLOUD_HOSTED_METRICS_ID: ${{ secrets.GCLOUD_HOSTED_METRICS_ID }}
+      GCLOUD_HOSTED_METRICS_URL: ${{ secrets.GCLOUD_HOSTED_METRICS_URL }}
+      GCLOUD_HOSTED_LOGS_ID: ${{ secrets.GCLOUD_HOSTED_LOGS_ID }}
+      GCLOUD_HOSTED_LOGS_URL: ${{ secrets.GCLOUD_HOSTED_LOGS_URL }}
+      GCLOUD_RW_API_KEY: ${{ secrets.GCLOUD_RW_API_KEY }}
+      GCLOUD_OTLP_ENDPOINT: ${{ secrets.GCLOUD_OTLP_ENDPOINT }}
+      GCLOUD_OTLP_AUTH_HEADER: ${{ secrets.GCLOUD_OTLP_AUTH_HEADER }}
+      PYTHONUTF8: "1"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'issue_comment' && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Run full tests (on-demand)
+        run: >-
+          python -m pytest -n auto -v
+          --cov=app
+          --cov-report=term-missing
+          --cov-report=html
+          --ignore=tests/e2e/kubernetes_local_alert_simulation
+          --ignore=tests/synthetic
+          -m "${{ matrix.os == 'windows-latest' && 'not synthetic and not integration' || 'not synthetic' }}"
+
+      - name: Upload coverage
+        if: always() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-extended-${{ matrix.os }}
+          path: |
+            htmlcov/
+            .coverage
+          retention-days: 7
