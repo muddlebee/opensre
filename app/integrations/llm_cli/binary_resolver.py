@@ -10,6 +10,13 @@ resolve_cli_binary(...)
     2. ``shutil.which`` PATH lookup for platform-specific binary names.
     3. Conventional install-location fallbacks (npm, volta, pnpm, Homebrew, etc.).
 
+default_cli_fallback_paths(binary_name)
+    Shared fallback dirs used by CLI adapters (npm/Homebrew/user bins).
+
+extended_cli_fallback_paths(binary_name, extra_directories)
+    Same as ``default_cli_fallback_paths``, plus vendor-specific roots appended
+    via the same naming rules as step 3 (uv/cargo/Python Scripts, …).
+
 diagnose_binary_path(path) -> str | None
     Return a human-readable reason why *path* is not usable, or ``None`` when it
     is fine.  Distinguishes the following states so callers can surface actionable
@@ -153,6 +160,10 @@ def default_cli_fallback_paths(binary_name: str) -> list[str]:
     for npm_dir in npm_prefix_bin_dirs():
         _append_candidate_paths(candidates, npm_dir, names)
 
+    return _dedupe_candidate_paths(candidates)
+
+
+def _dedupe_candidate_paths(candidates: list[str]) -> list[str]:
     deduped: list[str] = []
     seen: set[str] = set()
     for candidate in candidates:
@@ -162,6 +173,18 @@ def default_cli_fallback_paths(binary_name: str) -> list[str]:
         seen.add(normalized)
         deduped.append(normalized)
     return deduped
+
+
+def extended_cli_fallback_paths(
+    binary_name: str,
+    extra_directories: Sequence[str | Path],
+) -> list[str]:
+    """Return shared CLI fallbacks plus ``binary_name`` under *extra_directories*."""
+    candidates = list(default_cli_fallback_paths(binary_name))
+    names = candidate_binary_names(binary_name)
+    for directory in extra_directories:
+        _append_candidate_paths(candidates, directory, names)
+    return _dedupe_candidate_paths(candidates)
 
 
 def is_runnable_binary(path: str) -> bool:
