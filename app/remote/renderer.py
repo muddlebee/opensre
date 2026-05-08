@@ -291,9 +291,8 @@ class StreamRenderer:
     def _finish_active_node(self) -> None:
         if self._active_node is None:
             return
-        # Diagnose is streamed via Rich.Live, not the spinner tracker — route
-        # cleanup through the streaming finish so the Live region is always
-        # closed even on mid-stream exceptions.
+        # Diagnose uses ProgressTracker + token buffer — route cleanup through
+        # the streaming finish so the step completes even on mid-stream exceptions.
         if self._active_node == _DIAGNOSE_NODE:
             self._finish_diagnose_streaming()
             return
