@@ -65,7 +65,7 @@ def test_build_prompt_session_uses_persistent_history(
     assert tmp_path.exists()
     assert isinstance(prompt.completer, ShellCompleter)
     assert prompt.multiline is True
-    assert prompt.reserve_space_for_menu == 0
+    assert prompt.reserve_space_for_menu == 8
     assert prompt.app.key_bindings is not None
 
 

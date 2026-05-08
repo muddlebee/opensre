@@ -132,7 +132,8 @@ class TestListCommand:
 
     _FAKE_INTEGRATIONS = [
         {"service": "datadog", "source": "store", "status": "ok", "detail": "API ok"},
-        {"service": "slack", "source": "env", "status": "missing", "detail": "No bot token"},
+        # `missing` integrations are omitted from `/list integrations`; keep slack visible here.
+        {"service": "slack", "source": "env", "status": "failed", "detail": "No bot token"},
         {"service": "github", "source": "store", "status": "ok", "detail": "MCP ok"},
         {"service": "openclaw", "source": "store", "status": "failed", "detail": "401 from server"},
     ]
