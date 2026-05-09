@@ -104,8 +104,11 @@ def _check_llm_provider() -> tuple[bool, str]:
         return True, f"provider={provider}, CLI ready ({probe.detail})"
 
     expected_key = key_vars.get(provider)
-    if expected_key and not os.getenv(expected_key):
-        return False, f"provider={provider}, but {expected_key} is not set"
+    if expected_key:
+        from app.llm_credentials import has_llm_api_key
+
+        if not has_llm_api_key(expected_key):
+            return False, f"provider={provider}, but {expected_key} is not set"
     return True, f"provider={provider}"
 
 
