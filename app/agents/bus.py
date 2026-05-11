@@ -24,7 +24,7 @@ import threading
 import types
 import uuid
 from collections.abc import Iterator, Mapping
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -453,6 +453,16 @@ def _release_election_flock(fd: int | None) -> None:
         os.close(fd)
 
 
+@contextmanager
+def _hold_election_flock(path: Path) -> Iterator[None]:
+    """Acquire the cross-process election flock for ``path`` for one ``with`` block."""
+    fd = _acquire_election_flock(path)
+    try:
+        yield
+    finally:
+        _release_election_flock(fd)
+
+
 def _ensure_broker(path: Path) -> BusServer | None:
     """Elect a broker for ``path`` if none is live, else return ``None``.
 
@@ -485,29 +495,22 @@ def _ensure_broker(path: Path) -> BusServer | None:
         if existing is not None and existing.is_running:
             return existing
 
-    flock_fd = _acquire_election_flock(path)
-    try:
-        with _broker_lock:
-            # Re-check inside the cross-process lock: a peer (or another
-            # thread that also raced past the fast path) may have just
-            # elected.
-            existing = _brokers.get(path)
-            if existing is not None and existing.is_running:
-                return existing
-            if _socket_is_live(path):
+    with _hold_election_flock(path), _broker_lock:
+        existing = _brokers.get(path)
+        if existing is not None and existing.is_running:
+            return existing
+        if _socket_is_live(path):
+            return None
+        _unlink_stale(path)
+        server = BusServer(path)
+        try:
+            server.start()
+        except OSError as exc:
+            if exc.errno in _BIND_RACE_ERRNOS:
                 return None
-            _unlink_stale(path)
-            server = BusServer(path)
-            try:
-                server.start()
-            except OSError as exc:
-                if exc.errno in _BIND_RACE_ERRNOS:
-                    return None
-                raise
-            _brokers[path] = server
-            return server
-    finally:
-        _release_election_flock(flock_fd)
+            raise
+        _brokers[path] = server
+        return server
 
 
 def _connect_client(path: Path, timeout: float) -> socket.socket:

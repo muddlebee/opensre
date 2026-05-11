@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import queue
 import socket
 import threading
@@ -11,13 +12,7 @@ from pathlib import Path
 
 import pytest
 
-try:
-    import fcntl as _fcntl_probe
-except ImportError:
-    _POSIX_FCNTL_AVAILABLE = False
-else:
-    _POSIX_FCNTL_AVAILABLE = True
-    del _fcntl_probe
+_POSIX_FCNTL_AVAILABLE = importlib.util.find_spec("fcntl") is not None
 
 from app.agents import bus as bus_module
 from app.agents.bus import (
