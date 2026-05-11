@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from rich.console import Console
 from rich.markup import escape
 
+from app.agents.bus import BusMessage, subscribe
 from app.agents.config import (
     agents_config_path,
     load_agents_config,
@@ -47,6 +48,7 @@ from app.cli.interactive_shell.ui import (
 
 _AGENTS_FIRST_ARGS: tuple[tuple[str, str], ...] = (
     ("budget", "view or edit per-agent hourly budgets"),
+    ("bus", "live-tail the cross-agent context bus"),
     ("claim", "claim a branch for an agent"),
     ("conflicts", "show file-write conflicts between local AI agents"),
     ("kill", "SIGTERM → SIGKILL a local agent by PID"),
@@ -80,6 +82,43 @@ def _cmd_agents_list(console: Console) -> bool:
     registry = AgentRegistry()
     table = render_agents_table(registered_and_discovered_agents(registry))
     console.print(table)
+    return True
+
+
+def _format_bus_message(msg: BusMessage) -> str:
+    """Render one ``BusMessage`` as ``[agent] path — summary`` (path optional)."""
+    parts = [f"[{HIGHLIGHT}]\\[{escape(msg.agent)}][/]"]
+    if msg.path:
+        parts.append(escape(msg.path))
+        parts.append("—")
+    parts.append(escape(msg.summary))
+    return " ".join(parts)
+
+
+def _cmd_agents_bus(console: Console) -> bool:
+    """Live-tail the cross-agent context bus until ``Ctrl-C`` or broker exit.
+
+    Self-elects a broker if none is running, then streams each ``BusMessage``
+    as it arrives. The loop ends in three ways, each with explicit feedback:
+    ``KeyboardInterrupt`` (user detached), broker disconnect (e.g. the
+    publishing process exited), or socket error.
+    """
+    console.print(
+        f"[{DIM}]tailing /agents bus — Ctrl-C to exit[/]",
+    )
+    try:
+        for msg in subscribe():
+            console.print(_format_bus_message(msg))
+    except KeyboardInterrupt:
+        console.print(f"[{DIM}](detached)[/]")
+        return True
+    except OSError as exc:
+        console.print(f"[{ERROR}]bus error:[/] {escape(str(exc))}")
+        return False
+    # ``subscribe()`` returned cleanly — the broker closed our connection
+    # (e.g. it stopped, or its host process exited). Surface that explicitly
+    # so the user isn't left wondering why the prompt came back.
+    console.print(f"[{DIM}]bus broker disconnected[/]")
     return True
 
 
@@ -344,6 +383,8 @@ def _cmd_agents(session: ReplSession, console: Console, args: list[str]) -> bool
 
     if sub == "budget":
         return _cmd_agents_budget(session, console, args[1:])
+    if sub == "bus":
+        return _cmd_agents_bus(console)
     if sub == "conflicts":
         return _cmd_agents_conflicts(console)
 
@@ -359,8 +400,9 @@ def _cmd_agents(session: ReplSession, console: Console, args: list[str]) -> bool
     console.print(
         f"[{ERROR}]unknown subcommand:[/] {escape(sub)}  "
         "(try [bold]/agents[/bold], [bold]/agents budget[/bold], "
-        "[bold]/agents conflicts[/bold], [bold]/agents kill[/bold], "
-        "[bold]/agents claim[/bold], or [bold]/agents release[/bold])"
+        "[bold]/agents bus[/bold], [bold]/agents conflicts[/bold], "
+        "[bold]/agents kill[/bold], [bold]/agents claim[/bold], "
+        "or [bold]/agents release[/bold])"
     )
     session.mark_latest(ok=False, kind="slash")
     return True
@@ -369,7 +411,7 @@ def _cmd_agents(session: ReplSession, console: Console, args: list[str]) -> bool
 COMMANDS: list[SlashCommand] = [
     SlashCommand(
         "/agents",
-        "show registered local AI agents (subcommands: budget, claim, conflicts, kill, release)",
+        "show registered local AI agents (subcommands: budget, bus, claim, conflicts, kill, release)",
         _cmd_agents,
         first_arg_completions=_AGENTS_FIRST_ARGS,
     ),
