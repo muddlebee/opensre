@@ -1810,6 +1810,8 @@ def test_format_openai_connection_error_timeout_returns_timeout_message() -> Non
     assert "timed out" in msg.lower()
     assert "Ollama" in msg
     assert "network connection" not in msg
+
+
 # ---------------------------------------------------------------------------
 # _extract_json_payload — embedded code-fence handling (Sentry #1861)
 # ---------------------------------------------------------------------------
