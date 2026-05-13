@@ -11,7 +11,8 @@ from typing import Any
 
 from app.agent.prompt import build_system_prompt, format_alert_context
 from app.agent.result import InvestigationResult, parse_diagnosis
-from app.output import debug_print, get_tracker
+from app.cli.support.output import debug_print, get_tracker
+from app.constants.investigation import MAX_INVESTIGATION_LOOPS
 from app.services.agent_llm_client import ToolCall, get_agent_llm
 from app.state.evidence import EvidenceEntry
 from app.tools.registered_tool import RegisteredTool
@@ -20,7 +21,6 @@ from app.utils.tool_trace import redact_sensitive
 
 logger = logging.getLogger(__name__)
 
-MAX_ITERATIONS = 20
 _TOOL_EXECUTOR_WORKERS = 10
 
 # Maps alert_source → tool source keys. Tools from these sources are auto-called
@@ -159,7 +159,7 @@ class ConnectedInvestigationAgent:
                 _record_tool_end(tc, output)
                 debug_print(f"[seed:{tc.name}] → {_summarise(output)}")
 
-        for iteration in range(MAX_ITERATIONS):
+        for iteration in range(MAX_INVESTIGATION_LOOPS):
             logger.debug("[agent] iteration=%d", iteration)
             _emit("llm_start", {"iteration": iteration})
             response = llm.invoke(messages, system=system, tools=tool_schemas)
@@ -201,7 +201,10 @@ class ConnectedInvestigationAgent:
                 _record_tool_end(tc, output)
                 debug_print(f"[{tc.name}] → {_summarise(output)}")
         else:
-            logger.warning("[agent] hit MAX_ITERATIONS=%d without finishing", MAX_ITERATIONS)
+            logger.warning(
+                "[agent] hit MAX_INVESTIGATION_LOOPS=%d without finishing",
+                MAX_INVESTIGATION_LOOPS,
+            )
 
         result = parse_diagnosis(messages, evidence, state.get("alert_name", ""))
         result.evidence = evidence

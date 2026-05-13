@@ -5,8 +5,8 @@ from typing import Any
 
 import pytest
 
-from app import output
-from app.output import (
+from app.cli.support import output
+from app.cli.support.output import (
     ProgressEvent,
     ProgressTracker,
     _fmt_timing,
@@ -461,7 +461,7 @@ def test_progress_event_independent_default_lists() -> None:
 
 
 def test_safe_print_passes_utf8_strings_unchanged(capsys: pytest.CaptureFixture[str]) -> None:
-    from app.output import _safe_print
+    from app.cli.support.output import _safe_print
 
     _safe_print("hello world")
     assert capsys.readouterr().out.strip() == "hello world"
@@ -471,7 +471,7 @@ def test_safe_print_survives_encode_error(monkeypatch: pytest.MonkeyPatch) -> No
     """Simulate Windows cp1252 stdout that can't encode ● (U+25CF)."""
     from io import StringIO
 
-    from app.output import _safe_print
+    from app.cli.support.output import _safe_print
 
     class _NarrowWriter(StringIO):
         encoding = "ascii"
@@ -493,7 +493,7 @@ def test_finish_text_mode_survives_non_ascii_mark(
     """Regression: _finish in text mode must not raise UnicodeEncodeError for ●."""
     from io import StringIO
 
-    from app.output import _safe_print
+    from app.cli.support.output import _safe_print
 
     # Verify _safe_print itself is robust; _finish delegates to it.
     class _AsciiWriter(StringIO):

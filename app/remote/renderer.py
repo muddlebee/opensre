@@ -1,7 +1,7 @@
 """Terminal renderer for remote agent streaming events.
 
-Reuses spinner and label patterns from app.output so that remote investigation
-output looks identical to a local ``opensre investigate`` run.
+Reuses spinner and label patterns from app.cli.support.output so that remote
+investigation output looks identical to a local ``opensre investigate`` run.
 
 Handles both ``stream_mode: ["updates"]`` (legacy node-level) and
 ``stream_mode: ["events"]`` (fine-grained tool/LLM callbacks).
@@ -36,7 +36,7 @@ from app.cli.interactive_shell.ui.theme import (
     HIGHLIGHT_ANSI,
     TEXT_ANSI,
 )
-from app.output import (
+from app.cli.support.output import (
     CtrlOToggleWatcher,
     ProgressTracker,
     get_output_format,
@@ -75,7 +75,7 @@ _TOKEN_STREAM_KIND = "on_chat_model_stream"
 
 # Diagnose is the only node where the LLM's reasoning is visible enough to
 # warrant streaming the raw token deltas live as Markdown. Other nodes keep
-# the compact spinner UX from ``_LiveSpinner`` in app.output.
+# the compact spinner UX from ``_LiveSpinner`` in app.cli.support.output.
 _DIAGNOSE_NODE = "diagnose_root_cause"
 # Same Rich.Live refresh / spinner choices as the interactive-shell streamer
 # so the two surfaces feel identical.
@@ -763,7 +763,7 @@ class StreamRenderer:
         return None
 
     def _print_report(self) -> None:
-        from app.output import stop_display
+        from app.cli.support.output import stop_display
 
         stop_display()
 

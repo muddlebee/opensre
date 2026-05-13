@@ -110,8 +110,9 @@ class AgentState(TypedDict, total=False):
     # Append-only audit trail of windows replaced by ``adapt_window``. Each
     # entry is the OLD window dict at the moment of replacement, plus
     # ``replaced_at`` (ISO-8601) and ``replaced_reason`` (e.g.
-    # "expanded:empty_deploy_timeline"). Bounded by ``MAX_EXPANSIONS`` in
-    # the adapt_window rule layer; the field itself imposes no cap.
+    # "expanded:empty_deploy_timeline"). Bounded by
+    # ``app.constants.investigation.MAX_EXPANSIONS`` in the adapt_window rule
+    # layer; the field itself imposes no cap.
     # ``None`` until the first expansion. Diagnose narratives may cite
     # this to explain "we tried 120m, found no deploys, widened to 240m".
     incident_window_history: list[dict[str, Any]] | None

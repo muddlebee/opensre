@@ -729,7 +729,7 @@ class TestStreamRendererFocusedUXAndParsing:
     """Focused tests for plan preview and deterministic report parsing."""
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_plan_preview_printed_exactly_once(self, _mock_display, _mock_live) -> None:
         """The plan preview panel is printed exactly once when the plan_actions node completes."""
@@ -746,7 +746,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert renderer._plan_preview_printed is True
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parsing_with_structured_sections(
         self, _mock_display, _mock_live, capfd
@@ -773,7 +773,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Scale database connections to 200" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parsing_with_numbered_lists(self, _mock_display, _mock_live, capfd) -> None:
         """Report content with numbered lists is rendered via the terminal renderer."""
@@ -798,7 +798,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Scale database connections to 200" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parsing_fallback_to_verbs_if_no_section(
         self, _mock_display, _mock_live, capfd
@@ -821,7 +821,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Restart the backend container" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parsing_ignores_prose_evidence(self, _mock_display, _mock_live, capfd) -> None:
         """Report content including evidence items is rendered via the terminal renderer."""
@@ -840,7 +840,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Saturated pool connections count" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parsing_mid_sentence_prose_not_misclassified(
         self, _mock_display, _mock_live, capfd
@@ -866,7 +866,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Skip next steps for now" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_verb_fallback_ignores_consumed_lines(self, _mock_display, _mock_live, capfd) -> None:
         """Verb-fallback does not pick up diagnostic prose that was already consumed by another section."""
@@ -883,7 +883,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Next Actions" not in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_rich_rca_includes_parsed_report_root_cause_body(
         self, _mock_display, _mock_live, capfd
@@ -907,7 +907,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Idle timeout" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parses_markdown_hash_and_emphasis_headers(
         self, _mock_display, _mock_live, capfd
@@ -933,7 +933,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Enable debug logging" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_root_cause_verbs_do_not_promote_to_next_actions(
         self, _mock_display, _mock_live, capfd
@@ -956,7 +956,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "idle timeout" in out.lower()
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_rich_rca_confidence_invalid_score_shows_na(
         self, _mock_display, _mock_live, capfd
@@ -972,7 +972,7 @@ class TestStreamRendererFocusedUXAndParsing:
         assert "Incident summary" in out
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_report_parsing_mid_list_transition_guard(
         self, _mock_display, _mock_live, capfd
@@ -1071,7 +1071,7 @@ class TestStreamRendererDiagnoseThrottle:
         return fake_time, parse_count
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_chunks_in_one_window_collapse_to_a_single_final_flush(
         self, _mock_display, _mock_live, monkeypatch
@@ -1103,7 +1103,7 @@ class TestStreamRendererDiagnoseThrottle:
         assert fake_time[0] == 0.0
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_chunks_across_multiple_windows_render_periodically(
         self, _mock_display, _mock_live, monkeypatch
@@ -1130,7 +1130,7 @@ class TestStreamRendererDiagnoseThrottle:
         assert parse_count[0] < 50
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_final_flush_renders_chunks_pending_in_last_window(
         self, _mock_display, _mock_live, monkeypatch
@@ -1157,7 +1157,7 @@ class TestStreamRendererDiagnoseThrottle:
         assert parse_count[0] == 2
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_anthropic_block_chunks_throttle_correctly(
         self, _mock_display, _mock_live, monkeypatch
@@ -1182,7 +1182,7 @@ class TestStreamRendererDiagnoseThrottle:
         assert fake_time[0] == 0.0
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_diagnose_start_stops_progress_tracker_display(self, _mock_display, _mock_live) -> None:
         """Calling _begin_diagnose safely stops the active ProgressTracker display and sets it to None."""
@@ -1204,7 +1204,7 @@ class TestStreamRendererPrintAboveRenderable:
     """
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_print_above_renderable_routes_to_live_console_when_started(
         self, _mock_display, _mock_live
@@ -1226,7 +1226,7 @@ class TestStreamRendererPrintAboveRenderable:
         mock_console.print.assert_called_once_with(panel)
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_print_above_renderable_falls_back_to_tracker_when_live_not_started(
         self, _mock_display, _mock_live
@@ -1245,7 +1245,7 @@ class TestStreamRendererPrintAboveRenderable:
         mock_tracker_print.assert_called_once_with(panel)
 
     @patch("app.remote.renderer.Live")
-    @patch("app.output._EventLogDisplay")
+    @patch("app.cli.support.output._EventLogDisplay")
     @patch.dict(os.environ, {"TRACER_OUTPUT_FORMAT": "rich"})
     def test_print_above_renderable_falls_back_to_console_when_tracker_stopped(
         self, _mock_display, _mock_live
