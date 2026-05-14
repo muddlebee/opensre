@@ -63,6 +63,10 @@ _OPERATOR_ACTIONABLE_LLM_ERROR_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bapi request timed out\. check that the service is running\b", re.I),
     # Anthropic / provider account-level usage-limit enforcement (HTTP 400).
     re.compile(r"\byou have reached your specified api usage limits\b", re.I),
+    # Billing quota exhausted: catches the OpenAI ``insufficient_quota`` path
+    # (``"<provider> billing quota exceeded. ..."``) and the Bedrock Anthropic
+    # ``usage limits`` path (``"Anthropic billing quota exceeded for Bedrock model ..."``).
+    re.compile(r"\bbilling quota exceeded\b", re.I),
 )
 
 
