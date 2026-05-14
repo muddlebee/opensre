@@ -369,7 +369,12 @@ def _init_sentry_once(
         auto_enabling_integrations=False,
         before_send=_before_send,
         before_breadcrumb=_before_breadcrumb,
-        ignore_errors=[CLIAuthenticationRequired, CLITimeoutError, CLITransientError],
+        ignore_errors=[
+            KeyboardInterrupt,
+            CLIAuthenticationRequired,
+            CLITimeoutError,
+            CLITransientError,
+        ],
     )
 
 
