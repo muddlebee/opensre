@@ -45,6 +45,7 @@ from rich.console import Console
 from rich.markup import escape
 
 import app.cli.interactive_shell.orchestration.agent_actions as _agent_actions
+from app.agents.sampler import start_sampler
 from app.agents.sweep import run_startup_sweep
 from app.analytics.cli import capture_terminal_turn_summarized
 from app.analytics.events import Event
@@ -107,7 +108,6 @@ _INTERVENTION_CORRECTION_RE = re.compile(
     r")",
     re.IGNORECASE,
 )
-
 
 # Tokens that count as an explicit answer to a ``Proceed? [Y/n]``
 # confirmation. Compared against ``text.strip().lower()`` so case and
@@ -754,6 +754,7 @@ async def _run_interactive(
         session.prompt_history_backend = pt_session.history
     spinner = _SpinnerState()
     state = _ReplState()
+    sampler_task = start_sampler()
 
     cancel_kb = _build_cancel_key_bindings(state)
     _install_session_key_bindings(pt_session, cancel_kb)
@@ -977,6 +978,11 @@ async def _run_interactive(
     finally:
         state.exit_requested = True
         state.cancel_current_dispatch()
+        sampler_task.cancel()
+        try:  # noqa: SIM105
+            await sampler_task
+        except asyncio.CancelledError:
+            pass
         processor_task.cancel()
         # ``try/except/pass`` here (not ``contextlib.suppress``) so
         # CodeQL doesn't flag the bare ``await`` as ineffectual; SIM105
