@@ -499,7 +499,13 @@ def _build_assistant_msg(llm: Any, response: Any) -> dict[str, Any]:
 
     if isinstance(llm, AnthropicAgentClient):
         return llm.build_assistant_message(response.raw_content)
-    result: dict[str, Any] = llm.build_assistant_message(response.content, response.tool_calls)
+    # Use the raw API message when available so provider-specific fields (e.g. Gemini
+    # thought_signature required for multi-turn function calls) are preserved.
+    result: dict[str, Any] = (
+        response.raw_content
+        if response.raw_content is not None
+        else llm.build_assistant_message(response.content, response.tool_calls)
+    )
     return result
 
 

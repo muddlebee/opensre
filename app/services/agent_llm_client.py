@@ -281,7 +281,11 @@ class OpenAIAgentClient:
             content=content,
             tool_calls=tool_calls,
             stop_reason=stop_reason,
-            raw_content=None,
+            # Preserve the raw API message so provider-specific fields (e.g. Gemini
+            # thought_signature in tool_calls) survive into the next conversation turn.
+            # exclude_none=True strips null fields (refusal, audio, function_call …)
+            # that Gemini's strict endpoint would reject on the next turn.
+            raw_content=msg.model_dump(exclude_none=True),
         )
 
     @staticmethod
