@@ -25,7 +25,7 @@ on:
           - release
           - main
       tag:
-        description: "Optional tag to release (e.g. v2026.4.5). Ignored for the main channel."
+        description: "Optional tag to release (e.g. v2026.4.5 or v0.1). Ignored for the main channel."
         required: false
         type: string
 
@@ -438,12 +438,24 @@ jobs:
             exit 0
           fi
 
+          VERSION="${TAG_NAME#v}"
+          latest_flag="--latest=false"
+          release_title="Latest"
+          case "$TAG_NAME" in
+            v[0-9][0-9][0-9][0-9].*) ;;
+            *)
+              latest_flag="--latest"
+              release_title="OpenSRE ${VERSION}"
+              ;;
+          esac
+
           gh release create "$TAG_NAME" \
             release-assets/* \
             --repo "${{ github.repository }}" \
             --target "$target_sha" \
-            --title "Latest" \
-            --notes-file RELEASE_NOTES.md
+            --title "$release_title" \
+            --notes-file RELEASE_NOTES.md \
+            "$latest_flag"
 
           echo "created=true" >> "$GITHUB_OUTPUT"
 
