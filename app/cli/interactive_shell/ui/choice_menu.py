@@ -170,13 +170,25 @@ def write_menu_line(text: str = "") -> None:
 
 
 def _erase_menu_block(height: int) -> None:
-    sys.stdout.write(f"\r\x1b[{height}A\r\x1b[J")
+    if height:
+        sys.stdout.write(f"\r\x1b[{height}A\r\x1b[J")
+    reset_tty_column()
+
+
+def reset_tty_column() -> None:
+    """Return the cursor to column zero after inline menu I/O.
+
+    Menu rows are padded to the terminal width, so the cursor often ends on a
+    high column. Rich output that follows must start at column zero or tables
+    render as a diagonal block of leading whitespace.
+    """
+    sys.stdout.write("\r")
+    sys.stdout.flush()
 
 
 def erase_menu_lines(height: int) -> None:
     """Erase a previously-rendered inline menu block."""
     _erase_menu_block(height)
-    sys.stdout.flush()
 
 
 def _draw_menu(
@@ -304,5 +316,6 @@ __all__ = [
     "repl_choose_one",
     "repl_section_break",
     "repl_tty_interactive",
+    "reset_tty_column",
     "write_menu_line",
 ]

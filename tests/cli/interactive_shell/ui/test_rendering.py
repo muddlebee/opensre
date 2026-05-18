@@ -25,6 +25,38 @@ def test_render_integrations_table_empty_shows_hint() -> None:
     assert "opensre onboard" in buf.getvalue()
 
 
+def test_render_integrations_table_resets_tty_before_print(monkeypatch) -> None:
+    """Regression: padded inline menus leave the cursor at a high column."""
+    resets: list[bool] = []
+
+    class _Stdout:
+        def isatty(self) -> bool:
+            return True
+
+    monkeypatch.setattr("app.cli.interactive_shell.ui.rendering.sys.stdout", _Stdout())
+    monkeypatch.setattr(
+        "app.cli.interactive_shell.ui.choice_menu.reset_tty_column",
+        lambda: resets.append(True),
+    )
+
+    buf = io.StringIO()
+    console = Console(file=buf, force_terminal=False, width=80)
+    render_integrations_table(
+        console,
+        [
+            {
+                "service": "grafana",
+                "source": "local store",
+                "status": "passed",
+                "detail": "Connected to https://example.grafana.net",
+            }
+        ],
+    )
+
+    assert resets == [True]
+    assert "grafana" in buf.getvalue()
+
+
 def test_print_planned_actions_formats_kinds() -> None:
     from app.cli.interactive_shell.intent.interaction_models import PlannedAction
 

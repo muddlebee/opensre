@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+import sys
 from typing import Any
 
 from rich import box
@@ -50,6 +52,21 @@ def status_style(status: str) -> str:
 MCP_INTEGRATION_SERVICES = frozenset({"github", "openclaw"})
 
 
+def _repl_table_width(console: Console) -> int:
+    """Best-effort terminal width for Rich tables after inline menu I/O."""
+    term_cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+    return max(40, min(console.width, term_cols))
+
+
+def _prepare_tty_for_rich(console: Console) -> int:
+    """Reset cursor column and return the width Rich should render at."""
+    if sys.stdout.isatty():
+        from app.cli.interactive_shell.ui.choice_menu import reset_tty_column
+
+        reset_tty_column()
+    return _repl_table_width(console)
+
+
 def render_integrations_table(console: Console, results: list[dict[str, str]]) -> None:
     rows = [
         r
@@ -59,11 +76,13 @@ def render_integrations_table(console: Console, results: list[dict[str, str]]) -
     if not rows:
         console.print(f"[{DIM}]no integrations configured.  try `opensre onboard` to add one.[/]")
         return
-    table = repl_table(title="Integrations", title_style=BOLD_BRAND)
-    table.add_column("service", style="bold")
-    table.add_column("source", style=DIM)
-    table.add_column("status")
-    table.add_column("detail", style=DIM, overflow="fold")
+    width = _prepare_tty_for_rich(console)
+    table = repl_table(title="Integrations", title_style=BOLD_BRAND, width=width)
+    table.add_column("service", style="bold", no_wrap=True)
+    table.add_column("source", style=DIM, no_wrap=True)
+    table.add_column("status", no_wrap=True)
+    detail_width = max(20, width - 36)
+    table.add_column("detail", style=DIM, overflow="fold", max_width=detail_width)
     for row in rows:
         st = row.get("status", "unknown")
         table.add_row(
@@ -72,7 +91,7 @@ def render_integrations_table(console: Console, results: list[dict[str, str]]) -
             f"[{status_style(st)}]{escape(st)}[/]",
             escape(row.get("detail", "")),
         )
-    console.print(table)
+    console.print(table, width=width)
 
 
 def render_mcp_table(console: Console, results: list[dict[str, str]]) -> None:
@@ -80,11 +99,13 @@ def render_mcp_table(console: Console, results: list[dict[str, str]]) -> None:
     if not rows:
         console.print(f"[{DIM}]no MCP servers configured.[/]")
         return
-    table = repl_table(title="MCP servers", title_style=BOLD_BRAND)
-    table.add_column("server", style="bold")
-    table.add_column("source", style=DIM)
-    table.add_column("status")
-    table.add_column("detail", style=DIM, overflow="fold")
+    width = _prepare_tty_for_rich(console)
+    table = repl_table(title="MCP servers", title_style=BOLD_BRAND, width=width)
+    table.add_column("server", style="bold", no_wrap=True)
+    table.add_column("source", style=DIM, no_wrap=True)
+    table.add_column("status", no_wrap=True)
+    detail_width = max(20, width - 36)
+    table.add_column("detail", style=DIM, overflow="fold", max_width=detail_width)
     for row in rows:
         st = row.get("status", "unknown")
         table.add_row(
@@ -93,7 +114,7 @@ def render_mcp_table(console: Console, results: list[dict[str, str]]) -> None:
             f"[{status_style(st)}]{escape(st)}[/]",
             escape(row.get("detail", "")),
         )
-    console.print(table)
+    console.print(table, width=width)
 
 
 def render_models_table(console: Console, settings: Any) -> None:
