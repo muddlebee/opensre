@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# demo/signoz/env.sh
+# infra/scripts/signoz/env.sh
 # Source this file to export the minimum SigNoz env vars for OpenSRE.
 
 export SIGNOZ_CLICKHOUSE_HOST="${SIGNOZ_CLICKHOUSE_HOST:-localhost}"

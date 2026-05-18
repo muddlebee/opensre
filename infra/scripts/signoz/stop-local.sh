@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# demo/signoz/stop-local.sh
+# infra/scripts/signoz/stop-local.sh
 # Convenience wrapper around official SigNoz docker compose teardown.
 
 set -euo pipefail

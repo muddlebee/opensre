@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# demo/signoz/investigate.sh
+# infra/scripts/signoz/investigate.sh
 # Trigger a synthetic SigNoz alert investigation via the OpenSRE CLI.
+# Run from repo root: bash infra/scripts/signoz/investigate.sh
 
 set -euo pipefail
 
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+cd "$REPO_ROOT"
 
 # Source env defaults if not already set
-source demo/signoz/env.sh
+source "$SCRIPT_DIR/env.sh"
 
 ALERT_PAYLOAD='{
   "alert_source": "signoz",

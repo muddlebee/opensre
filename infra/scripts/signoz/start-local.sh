@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# demo/signoz/start-local.sh
+# infra/scripts/signoz/start-local.sh
 # Convenience wrapper around the official SigNoz Docker Compose setup.
 #
 # Official docs:
