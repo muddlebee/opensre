@@ -41,10 +41,19 @@ def repl_tty_interactive() -> bool:
     return bool(sys.stdin.isatty() and sys.stdout.isatty())
 
 
+def ensure_tty_column_zero() -> None:
+    """Reset the cursor column before Rich output when a TTY is active."""
+    if repl_tty_interactive():
+        reset_tty_column()
+
+
 def repl_section_break(console: Console) -> None:
     """Blank line + dim rule between an inline menu step and Rich output."""
+    ensure_tty_column_zero()
     console.print()
+    ensure_tty_column_zero()
     console.rule(characters="─", style=DIM)
+    ensure_tty_column_zero()
     console.print()
 
 
@@ -314,6 +323,7 @@ __all__ = [
     "print_valid_choice_list",
     "read_menu_action",
     "repl_choose_one",
+    "ensure_tty_column_zero",
     "repl_section_break",
     "repl_tty_interactive",
     "reset_tty_column",

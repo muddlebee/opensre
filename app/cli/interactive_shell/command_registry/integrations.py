@@ -31,6 +31,7 @@ from app.cli.interactive_shell.ui.choice_menu import (
     repl_section_break,
     repl_tty_interactive,
 )
+from app.cli.interactive_shell.ui.rendering import print_repl_table, repl_print
 
 _ROOT_LIST = "/list"
 _ROOT_INTEGRATIONS = "/integrations"
@@ -83,9 +84,9 @@ def _interactive_list_menu(_session: ReplSession, console: Console) -> bool:
         elif sub == "tools":
             catalog = build_tool_catalog()
             if not catalog:
-                console.print("[dim]no tools registered.[/dim]")
+                repl_print(console, "[dim]no tools registered.[/dim]")
             else:
-                console.print(format_tool_catalog_text(catalog), markup=False)
+                repl_print(console, format_tool_catalog_text(catalog), markup=False)
         repl_section_break(console)
 
 
@@ -104,9 +105,9 @@ def _cmd_integrations(session: ReplSession, console: Console, args: list[str]) -
         render_integrations_table(console, results)
         failed = [r for r in results if r.get("status") in ("failed", "missing")]
         if failed:
-            console.print(f"[{WARNING}]{len(failed)} integration(s) need attention.[/]")
+            repl_print(console, f"[{WARNING}]{len(failed)} integration(s) need attention.[/]")
         else:
-            console.print(f"[{HIGHLIGHT}]all integrations ok.[/]")
+            repl_print(console, f"[{HIGHLIGHT}]all integrations ok.[/]")
         return True
 
     if sub == "setup":
@@ -117,14 +118,14 @@ def _cmd_integrations(session: ReplSession, console: Console, args: list[str]) -
 
     if sub == "show":
         if len(args) < 2:
-            console.print(f"[{DIM}]usage:[/] /integrations show <service>")
+            repl_print(console, f"[{DIM}]usage:[/] /integrations show <service>")
             session.mark_latest(ok=False, kind="slash")
             return True
         service = args[1].lower()
         results = repl_data.load_verified_integrations()
         match = next((r for r in results if r.get("service") == service), None)
         if match is None:
-            console.print(f"[{ERROR}]service not found:[/] {escape(service)}")
+            repl_print(console, f"[{ERROR}]service not found:[/] {escape(service)}")
             session.mark_latest(ok=False, kind="slash")
             return True
         table = repl_table(
@@ -132,17 +133,18 @@ def _cmd_integrations(session: ReplSession, console: Console, args: list[str]) -
             title_style=BOLD_BRAND,
             show_header=False,
         )
-        table.add_column("key", style="bold")
-        table.add_column("value")
+        table.add_column("key", style="bold", no_wrap=True)
+        table.add_column("value", overflow="fold")
         for k, v in match.items():
-            table.add_row(k, str(v))
-        console.print(table)
+            table.add_row(escape(k), escape(str(v)))
+        print_repl_table(console, table)
         return True
 
-    console.print(
+    repl_print(
+        console,
         f"[{ERROR}]unknown subcommand:[/] {escape(sub)}  "
         "(try [bold]/integrations list[/bold], [bold]/integrations verify[/bold], "
-        "or [bold]/integrations show <service>[/bold])"
+        "or [bold]/integrations show <service>[/bold])",
     )
     session.mark_latest(ok=False, kind="slash")
     return True
@@ -178,7 +180,7 @@ def _interactive_integrations_menu(session: ReplSession, console: Console) -> bo
         elif sub == "show":
             choices = _verified_service_choices()
             if not choices:
-                console.print("[dim]no integrations in store to show.[/dim]")
+                repl_print(console, "[dim]no integrations in store to show.[/dim]")
                 show_section_break = True
             else:
                 svc = repl_choose_one(
@@ -192,7 +194,7 @@ def _interactive_integrations_menu(session: ReplSession, console: Console) -> bo
         elif sub == "remove":
             choices = _verified_service_choices()
             if not choices:
-                console.print("[dim]no integrations in store to remove.[/dim]")
+                repl_print(console, "[dim]no integrations in store to remove.[/dim]")
                 show_section_break = True
             else:
                 svc = repl_choose_one(

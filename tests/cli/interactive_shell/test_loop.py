@@ -36,6 +36,52 @@ from app.cli.interactive_shell.runtime.session import ReplSession
 from app.cli.interactive_shell.ui.theme import ANSI_RESET, PROMPT_ACCENT_ANSI
 
 
+def test_streaming_console_print_resets_tty_when_not_streaming(monkeypatch) -> None:
+    resets: list[bool] = []
+    monkeypatch.setattr(
+        "app.cli.interactive_shell.ui.choice_menu.ensure_tty_column_zero",
+        lambda: resets.append(True),
+    )
+
+    spinner = loop._SpinnerState()
+    buf = io.StringIO()
+    console = loop._StreamingConsole(
+        spinner,
+        threading.Event(),
+        file=buf,
+        force_terminal=False,
+        width=80,
+    )
+    console.print("line one")
+    console.print("line two")
+
+    assert len(resets) == 2
+    assert "line one" in buf.getvalue()
+    assert "line two" in buf.getvalue()
+
+
+def test_streaming_console_print_skips_reset_while_streaming(monkeypatch) -> None:
+    resets: list[bool] = []
+    monkeypatch.setattr(
+        "app.cli.interactive_shell.ui.choice_menu.ensure_tty_column_zero",
+        lambda: resets.append(True),
+    )
+
+    spinner = loop._SpinnerState()
+    spinner.start()
+    buf = io.StringIO()
+    console = loop._StreamingConsole(
+        spinner,
+        threading.Event(),
+        file=buf,
+        force_terminal=False,
+        width=80,
+    )
+    console.print("streaming chunk")
+
+    assert resets == []
+
+
 def test_repl_input_lexer_highlights_first_slash_token() -> None:
     lexer = ReplInputLexer()
     get_line = lexer.lex_document(Document("/model show", len("/model")))
