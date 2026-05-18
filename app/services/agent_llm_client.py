@@ -247,6 +247,19 @@ class BedrockAgentClient(AnthropicAgentClient):
         )
 
 
+_OPENAI_O_SERIES_RE = re.compile(r"(?:^|[^A-Za-z0-9])o\d", re.IGNORECASE)
+
+
+def _openai_max_token_kwarg(model: str) -> str:
+    # OpenAI o-series reasoning models (o1, o3, o4-mini, …) reject max_tokens.
+    # Matches a bare ``o<digit>`` token at the start of the name or following
+    # a non-alphanumeric separator, so vendor-prefixed routes
+    # (``openai/o4-mini``, ``azure/o3``) and custom deployment names
+    # (``my-o1-deployment``) are still detected correctly. Names with no
+    # o-series token fall back to ``max_tokens``.
+    return "max_completion_tokens" if _OPENAI_O_SERIES_RE.search(model) else "max_tokens"
+
+
 class OpenAIAgentClient:
     """OpenAI-compatible client with tool-calling for the agent loop."""
 
@@ -283,12 +296,9 @@ class OpenAIAgentClient:
         if system:
             msgs = [{"role": "system", "content": system}] + msgs
 
-        # OpenAI o-series reasoning models (o1, o3, o4, and future variants) use
-        # max_completion_tokens; all other models use max_tokens.
-        tokens_key = "max_completion_tokens" if re.match(r"^o\d", self._model) else "max_tokens"
         kwargs: dict[str, Any] = {
             "model": self._model,
-            tokens_key: self._max_tokens,
+            _openai_max_token_kwarg(self._model): self._max_tokens,
             "messages": msgs,
         }
         if tools:

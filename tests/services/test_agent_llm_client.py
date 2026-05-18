@@ -305,46 +305,67 @@ def test_openai_agent_client_invoke_raw_content_preserves_extra_fields(
     assert first_tc.get("thought_signature") == "abc123"
 
 
-@pytest.mark.parametrize(
-    "model,expected_key",
-    [
-        ("o1", "max_completion_tokens"),
-        ("o1-mini", "max_completion_tokens"),
-        ("o1-preview", "max_completion_tokens"),
-        ("o3", "max_completion_tokens"),
-        ("o3-mini", "max_completion_tokens"),
-        ("o4-mini", "max_completion_tokens"),
-        ("o5-mini", "max_completion_tokens"),  # future model covered by regex
-        ("gpt-4o", "max_tokens"),
-        ("gemini-2.5-flash", "max_tokens"),
-    ],
-)
-def test_openai_agent_client_uses_correct_tokens_param(
+def test_openai_o_series_uses_max_completion_tokens(
     monkeypatch: pytest.MonkeyPatch,
-    model: str,
-    expected_key: str,
 ) -> None:
-    """O-series reasoning models require max_completion_tokens; others use max_tokens."""
+    """o-series reasoning models must receive max_completion_tokens, not max_tokens."""
     _install_fake_openai(monkeypatch)
 
-    captured: dict[str, object] = {}
+    captured: dict = {}
 
-    def fake_create(**kwargs: object) -> object:
+    def capture_create(**kwargs: object) -> object:
         captured.update(kwargs)
         return _make_fake_openai_response(content="ok")
 
     client = OpenAIAgentClient.__new__(OpenAIAgentClient)
     client._client = types.SimpleNamespace(
-        chat=types.SimpleNamespace(completions=types.SimpleNamespace(create=fake_create))
+        chat=types.SimpleNamespace(completions=types.SimpleNamespace(create=capture_create))
     )
-    client._model = model
-    client._max_tokens = 512
+    client._max_tokens = 4096
 
-    client.invoke(messages=[{"role": "user", "content": "hi"}])
+    for model in (
+        "o1",
+        "o1-mini",
+        "o3",
+        "o3-mini",
+        "o4-mini",
+        "openai/o4-mini",
+        "azure/o3",
+        "my-o1-deployment",
+    ):
+        captured.clear()
+        client._model = model
+        client.invoke(messages=[{"role": "user", "content": "hi"}])
+        assert "max_completion_tokens" in captured, f"{model} should use max_completion_tokens"
+        assert "max_tokens" not in captured, f"{model} must not send max_tokens"
 
-    assert expected_key in captured, f"expected '{expected_key}' in kwargs for model {model!r}"
-    other_key = "max_tokens" if expected_key == "max_completion_tokens" else "max_completion_tokens"
-    assert other_key not in captured, f"unexpected '{other_key}' in kwargs for model {model!r}"
+
+def test_openai_standard_models_use_max_tokens(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-o-series models must still receive max_tokens."""
+    _install_fake_openai(monkeypatch)
+
+    captured: dict = {}
+
+    def capture_create(**kwargs: object) -> object:
+        captured.update(kwargs)
+        return _make_fake_openai_response(content="ok")
+
+    client = OpenAIAgentClient.__new__(OpenAIAgentClient)
+    client._client = types.SimpleNamespace(
+        chat=types.SimpleNamespace(completions=types.SimpleNamespace(create=capture_create))
+    )
+    client._max_tokens = 4096
+
+    for model in ("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gemini-2.5-flash"):
+        captured.clear()
+        client._model = model
+        client.invoke(messages=[{"role": "user", "content": "hi"}])
+        assert "max_tokens" in captured, f"{model} should use max_tokens"
+        assert "max_completion_tokens" not in captured, (
+            f"{model} must not send max_completion_tokens"
+        )
 
 
 def test_sdk_type_error_for_missing_api_key_fails_fast(
