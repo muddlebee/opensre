@@ -44,6 +44,8 @@ VALID_HERMES_EVIDENCE_SOURCES = frozenset(
 VALID_HERMES_TRAJECTORY_ACTIONS = frozenset(
     {
         "get_hermes_session_log",
+        "get_hermes_provider_traffic",
+        "get_hermes_config",
         "get_hermes_message_history",
         "get_hermes_kv_cache_state",
         "get_hermes_runtime_state",
@@ -138,6 +140,8 @@ class HermesRuntimeStateFixture(TypedDict):
     last_progress_ts: str
     is_blocked: bool
     blocking_call: HermesBlockingCall | None
+    imds_fingerprint: NotRequired[dict[str, Any] | None]
+    resolved_aws_role_arn: NotRequired[str | None]
 
 
 class HermesCronLastRun(TypedDict):
@@ -231,6 +235,72 @@ def validate_hermes_session_log(data: dict[str, Any]) -> HermesSessionLogFixture
     return data  # type: ignore[return-value]
 
 
+def validate_hermes_provider_traffic(data: dict[str, Any]) -> dict[str, Any]:
+    ctx = "hermes_provider_traffic.json"
+    calls = data.get("calls")
+    if not isinstance(calls, list):
+        raise ValueError(f"{ctx}: 'calls' must be a list")
+
+    for index, call in enumerate(calls):
+        if not isinstance(call, dict):
+            raise ValueError(f"{ctx}:calls[{index}] must be an object")
+
+        cctx = f"{ctx}:calls[{index}]"
+        for field in ("ts", "provider", "model", "endpoint"):
+            _require_str(call, field, cctx)
+
+        request = call.get("request")
+        if not isinstance(request, dict):
+            raise ValueError(f"{cctx}: 'request' must be an object")
+        for field in ("method", "url"):
+            _require_str(request, field, f"{cctx}:request")
+
+        if not isinstance(request.get("body_sample"), str):
+            raise ValueError(f"{cctx}:request: 'body_sample' must be a string")
+        if not isinstance(request.get("headers"), dict):
+            raise ValueError(f"{cctx}:request: 'headers' must be an object")
+
+        response = call.get("response")
+        if not isinstance(response, dict):
+            raise ValueError(f"{cctx}: 'response' must be an object")
+        if not isinstance(response.get("status"), int):
+            raise ValueError(f"{cctx}:response: 'status' must be an integer")
+        if not isinstance(response.get("headers"), dict):
+            raise ValueError(f"{cctx}:response: 'headers' must be an object")
+        if not isinstance(response.get("body_sample"), str):
+            raise ValueError(f"{cctx}:response: 'body_sample' must be a string")
+        if not isinstance(response.get("duration_ms"), int):
+            raise ValueError(f"{cctx}:response: 'duration_ms' must be an integer")
+
+    return data
+
+
+def validate_hermes_config(data: dict[str, Any]) -> dict[str, Any]:
+    ctx = "hermes_config.json"
+    for field in ("provider", "model", "region"):
+        _require_str(data, field, ctx)
+
+    providers = data.get("providers")
+    if not isinstance(providers, list):
+        raise ValueError(f"{ctx}: 'providers' must be a list")
+    for index, provider in enumerate(providers):
+        if not isinstance(provider, dict):
+            raise ValueError(f"{ctx}:providers[{index}] must be an object")
+        pctx = f"{ctx}:providers[{index}]"
+        for field in ("name", "base_url", "auth_kind"):
+            _require_str(provider, field, pctx)
+
+    transport = data.get("transport")
+    if not isinstance(transport, dict):
+        raise ValueError(f"{ctx}: 'transport' must be an object")
+    if not isinstance(transport.get("sse_max_line_bytes"), int):
+        raise ValueError(f"{ctx}:transport: 'sse_max_line_bytes' must be an integer")
+    if not isinstance(transport.get("request_timeout_s"), int):
+        raise ValueError(f"{ctx}:transport: 'request_timeout_s' must be an integer")
+
+    return data
+
+
 def validate_hermes_message_history(data: dict[str, Any]) -> HermesMessageHistoryFixture:
     ctx = "hermes_message_history.json"
     _require_str(data, "session_id", ctx)
@@ -311,6 +381,15 @@ def validate_hermes_runtime_state(data: dict[str, Any]) -> HermesRuntimeStateFix
         _require_str(blocking_call, "started_at", f"{ctx}:blocking_call")
         if not isinstance(blocking_call.get("duration_s"), int):
             raise ValueError(f"{ctx}:blocking_call: 'duration_s' must be an integer")
+
+    imds_fingerprint = data.get("imds_fingerprint")
+    if imds_fingerprint is not None and not isinstance(imds_fingerprint, dict):
+        raise ValueError(f"{ctx}: 'imds_fingerprint' must be an object or null")
+
+    resolved_aws_role_arn = data.get("resolved_aws_role_arn")
+    if resolved_aws_role_arn is not None and not isinstance(resolved_aws_role_arn, str):
+        raise ValueError(f"{ctx}: 'resolved_aws_role_arn' must be a string or null")
+
     return data  # type: ignore[return-value]
 
 
