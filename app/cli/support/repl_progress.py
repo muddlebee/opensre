@@ -13,7 +13,7 @@ _REPL_SAFE_PROGRESS: contextvars.ContextVar[bool] = contextvars.ContextVar(
 
 
 @contextlib.contextmanager
-def repl_safe_progress_scope() -> Generator[None, None, None]:
+def repl_safe_progress_scope() -> Generator[None]:
     """Mark the current context (and ``asyncio.to_thread`` children) as REPL-safe.
 
     Investigation dispatch runs in a worker thread where ``get_app_or_none()`` is
