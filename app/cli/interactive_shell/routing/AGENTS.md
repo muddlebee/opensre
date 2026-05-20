@@ -58,16 +58,14 @@ If all answers are weak, keep the logic inline.
 | `app/cli/interactive_shell/routing/tests/scenario_loader.py` | Routing package owners | Load `scenarios/<behavior_class>/<id>/{scenario.yml,answer.yml}` |
 | `app/cli/interactive_shell/routing/tests/scenarios/**/scenario.yml` | Routing package owners | Input world: prompt, session, capabilities, intent metadata |
 | `app/cli/interactive_shell/routing/tests/scenarios/**/answer.yml` | Routing package owners | Expected behavior: route, policy, planned/executed actions, response contract |
-| `tests/cli/interactive_shell/routing/test_llm_intent_classifier.py` | Routing package owners | Classifier internals (sanitization + live cache/override behavior) |
 
 ## Routing test isolation policy (no mocks)
 
 - Do **not** use `unittest.mock`, `patch`, `MagicMock`, or equivalent mocking
   primitives in routing tests.
 - Do **not** stub or monkeypatch the LLM client path in routing tests.
-- Do **not** stub or monkeypatch `llm_phase_route` in routing tests.
 - Routing contract tests must exercise the real routing stack
-  (`route_input` -> `handle_message_with_agent` -> classifier/fallback) and
+  (`route_input` -> `handle_message_with_agent`) and
   rely on curated prompts instead of synthetic mocked return values.
 
 ## Important routing decisions (locked)
@@ -77,12 +75,10 @@ If all answers are weak, keep the logic inline.
 - `resolve_cli_command(...)` owns deterministic command routing only
   (slash-prefixed commands and bare command aliases).
 - `handle_message_with_agent(...)` owns non-command routing and should stay
-  linear: LLM intent classifier -> default `cli_agent`.
+  linear: direct default `cli_agent` routing for non-command input.
 - Regex fallback has been intentionally removed from routing. Do **not**
   re-introduce `regex_fallback`/`routes/route_regex_fallback`-style phases
   unless there is an explicit product decision to restore them.
-- Keep the LLM intent classifier canonical in routing (`app/cli/interactive_shell/routing/llm_intent_classifier.py`);
-  do not duplicate classifier logic in other packages.
 - Preserve routing decision observability contracts used in tests:
   `fallback_reason` semantics and `matched_signals` (`cli_agent_action_plan`, etc.).
 
@@ -92,8 +88,7 @@ If all answers are weak, keep the logic inline.
   optional-only jobs.
 - Keep deterministic routing contracts (`test_routing_scenarios.py::test_deterministic_routing` and
   `test_routing_fixture_integrity.py`) in the default PR CI flow.
-- Run live-LLM suites (`test_routing_scenarios.py` live tests and
-  `tests/cli/interactive_shell/routing/test_llm_intent_classifier.py`)
+- Run live-LLM routing suites (`test_routing_scenarios.py` live tests)
   in the post-merge sharded workflow.
 - Execute routing suites with heavy parallelism (`pytest-xdist`, e.g. `-n auto`)
   in both local and CI environments.

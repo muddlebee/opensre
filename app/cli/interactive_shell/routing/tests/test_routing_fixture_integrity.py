@@ -23,7 +23,7 @@ from app.cli.interactive_shell.routing.tests.scenario_loader import (
 TESTS_DIR = Path(__file__).resolve().parent
 ROUTING_SCENARIOS_TEST = TESTS_DIR / "test_routing_scenarios.py"
 LEGACY_ROUTING_TESTS_DIR = TESTS_DIR.parents[4] / "tests" / "cli" / "interactive_shell" / "routing"
-ALLOWED_LEGACY_TESTS = {"test_llm_intent_classifier.py"}
+ALLOWED_LEGACY_TESTS: set[str] = set()
 ORACLE_RUNTIME = TESTS_DIR / "_oracle_runtime.py"
 
 
@@ -171,7 +171,7 @@ def test_routing_test_modules_do_not_use_mock_patterns() -> None:
     )
 
 
-def test_routing_tests_are_colocated_except_classifier_internal_suite() -> None:
+def test_routing_tests_are_fully_colocated() -> None:
     if not LEGACY_ROUTING_TESTS_DIR.exists():
         return
     unexpected = sorted(
@@ -181,6 +181,6 @@ def test_routing_tests_are_colocated_except_classifier_internal_suite() -> None:
     )
     assert not unexpected, (
         "Routing tests must be colocated under app/cli/interactive_shell/routing/tests/. "
-        "Only classifier-internal coverage remains under tests/cli/interactive_shell/routing/: "
+        "No routing tests should remain under tests/cli/interactive_shell/routing/: "
         + ", ".join(unexpected)
     )

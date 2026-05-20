@@ -15,7 +15,6 @@ from app.cli.interactive_shell.routing.handle_message_with_agent.orchestration.i
 from app.cli.interactive_shell.routing.handle_message_with_agent.orchestration.llm_action_planner import (
     plan_actions_with_llm,
 )
-from app.cli.interactive_shell.routing.llm_intent_classifier import clear_classify_cache
 from app.cli.interactive_shell.routing.router import classify_input, route_input
 from app.cli.interactive_shell.routing.tests._oracle_runtime import (
     OracleRunResult,
@@ -131,11 +130,6 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
             _LIVE_CASES,
             ids=[case.scenario.id for case in _LIVE_CASES],
         )
-
-
-@pytest.fixture(autouse=True)
-def _clear_classify_cache_for_live() -> None:
-    clear_classify_cache()
 
 
 def test_shard_selection_is_non_empty() -> None:
