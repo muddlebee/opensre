@@ -485,8 +485,12 @@ def _run_parallel(
         except RuntimeError as exc:
             logger.warning("[agent] tool execution aborted: %s", exc)
             return [{"error": str(exc)}] * len(tool_calls)
-        for fut in as_completed(futures):
-            results[futures[fut]] = fut.result()
+        try:
+            for fut in as_completed(futures):
+                results[futures[fut]] = fut.result()
+        except BaseException as exc:
+            logger.warning("[agent] tool result collection aborted: %s", exc)
+            return [{"error": "interpreter shutting down"} for _ in tool_calls]
     return results
 
 
