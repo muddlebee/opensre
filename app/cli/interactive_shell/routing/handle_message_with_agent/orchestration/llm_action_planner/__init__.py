@@ -8,6 +8,7 @@ from .postprocessing import (
     PlannerPostprocessPolicyTag,
     _fail_closed_vague_local_model,
     _finalize_planner_result,
+    _finalize_planner_result_with_trace,
     _reconcile_compound_actions,
     finalize_planner_result_with_trace,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "LlmActionPlanResult",
     "_fail_closed_vague_local_model",
     "_finalize_planner_result",
+    "_finalize_planner_result_with_trace",
     "_reconcile_compound_actions",
     "finalize_planner_result_with_trace",
     "plan_actions_with_llm",

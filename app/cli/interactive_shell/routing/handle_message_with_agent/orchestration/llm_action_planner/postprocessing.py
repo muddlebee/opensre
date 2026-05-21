@@ -246,3 +246,32 @@ def finalize_planner_result_with_trace(
         final_state.has_unhandled,
         tuple(applied_list),
     )
+
+
+def _finalize_planner_result_with_trace(
+    message: str,
+    actions: list[PlannedAction],
+    has_unhandled: bool,
+    *,
+    session: Any | None = None,
+) -> tuple[list[PlannedAction], bool, tuple[str, ...]]:
+    """Backward-compatible alias for legacy imports."""
+
+    result = finalize_planner_result_with_trace(
+        message,
+        actions,
+        has_unhandled,
+        session=session,
+    )
+    compat_tags = tuple(
+        {
+            PlannerPostprocessPolicyTag.UPGRADE_HANDOFF_TO_INCIDENT: (
+                "normalize_upgrade_handoff_to_incident"
+            ),
+            PlannerPostprocessPolicyTag.COERCE_INCIDENT_PASTE_HANDOFF: (
+                "normalize_coerce_incident_paste_handoff"
+            ),
+        }.get(tag, str(tag))
+        for tag in result.applied_policies
+    )
+    return result.actions, result.has_unhandled, compat_tags
