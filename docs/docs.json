@@ -105,6 +105,7 @@
               "incident_io",
               "opsgenie",
               "sentry",
+              "signoz",
               "splunk"
             ]
           },
