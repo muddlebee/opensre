@@ -17,6 +17,7 @@ from app.cli.interactive_shell.ui import (
     ERROR,
     HIGHLIGHT,
     WARNING,
+    print_repl_table,
     repl_table,
 )
 
@@ -118,13 +119,13 @@ def _cmd_history(_session: ReplSession, console: Console, _args: list[str]) -> b
         console.print(f"[{DIM}]no history yet.[/]")
         return True
 
-    table = repl_table(title="Command history", title_style=BOLD_BRAND)
+    table = repl_table(title="Command history\n", title_style=BOLD_BRAND)
     table.add_column("#", style=DIM, justify="right")
     table.add_column("text", overflow="fold")
 
     for i, entry in enumerate(entries, start=1):
         table.add_row(str(i), escape(entry))
-    console.print(table)
+    print_repl_table(console, table)
     return True
 
 
@@ -134,7 +135,7 @@ def _cmd_tasks(session: ReplSession, console: Console, _args: list[str]) -> bool
         console.print(f"[{DIM}]no tasks recorded this session.[/]")
         return True
 
-    table = repl_table(title="Tasks", title_style=BOLD_BRAND)
+    table = repl_table(title="Tasks\n", title_style=BOLD_BRAND)
     table.add_column("id", style="bold")
     table.add_column("kind")
     table.add_column("status")
@@ -159,7 +160,7 @@ def _cmd_tasks(session: ReplSession, console: Console, _args: list[str]) -> bool
             _task_duration_label(task),
             escape(_task_detail_label(task)),
         )
-    console.print(table)
+    print_repl_table(console, table)
     return True
 
 

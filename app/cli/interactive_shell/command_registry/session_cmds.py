@@ -16,6 +16,7 @@ from app.cli.interactive_shell.ui import (
     ERROR,
     HIGHLIGHT,
     WARNING,
+    print_repl_table,
     render_ready_box,
     repl_table,
     resolve_provider_models,
@@ -75,7 +76,7 @@ def _cmd_trust(session: ReplSession, console: Console, args: list[str]) -> bool:
 def _cmd_status(session: ReplSession, console: Console, _args: list[str]) -> bool:
     from app.cli.interactive_shell.references.grounding_diagnostics import iter_grounding_sources
 
-    table = repl_table(title="Session status", title_style=BOLD_BRAND, show_header=False)
+    table = repl_table(title="Session status\n", title_style=BOLD_BRAND, show_header=False)
     table.add_column("key", style="bold")
     table.add_column("value")
     table.add_row("interactions", str(len(session.history)))
@@ -100,12 +101,12 @@ def _cmd_status(session: ReplSession, console: Console, _args: list[str]) -> boo
     acc = session.accumulated_context
     if acc:
         table.add_row("accumulated context", ", ".join(sorted(acc.keys())))
-    console.print(table)
+    print_repl_table(console, table)
     return True
 
 
 def _cmd_cost(session: ReplSession, console: Console, _args: list[str]) -> bool:
-    table = repl_table(title="Session cost", title_style=BOLD_BRAND, show_header=False)
+    table = repl_table(title="Session cost\n", title_style=BOLD_BRAND, show_header=False)
     table.add_column("key", style="bold")
     table.add_column("value")
     table.add_row("interactions", str(len(session.history)))
@@ -118,7 +119,7 @@ def _cmd_cost(session: ReplSession, console: Console, _args: list[str]) -> bool:
     else:
         table.add_row("token usage", f"[{DIM}]not available (not wired yet)[/]")
 
-    console.print(table)
+    print_repl_table(console, table)
     return True
 
 
@@ -211,12 +212,12 @@ def _cmd_context(session: ReplSession, console: Console, _args: list[str]) -> bo
         console.print(f"[{DIM}]no infra context accumulated yet.[/]")
         return True
 
-    table = repl_table(title="Accumulated context", title_style=BOLD_BRAND, show_header=False)
+    table = repl_table(title="Accumulated context\n", title_style=BOLD_BRAND, show_header=False)
     table.add_column("key", style="bold")
     table.add_column("value")
     for k, v in sorted(session.accumulated_context.items()):
         table.add_row(k, escape(str(v)))
-    console.print(table)
+    print_repl_table(console, table)
     return True
 
 

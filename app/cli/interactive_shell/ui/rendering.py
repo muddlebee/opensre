@@ -85,10 +85,14 @@ def _repl_table_width(console: Console) -> int:
 
 
 def _prepare_tty_for_rich(console: Console) -> int:
-    """Reset cursor column and return the width Rich should render at."""
-    from app.cli.interactive_shell.ui.choice_menu import prepare_repl_output_line
+    """Return the width Rich should render at.
 
-    prepare_repl_output_line()
+    prepare_repl_output_line() (which writes \\r\\n) is intentionally NOT called
+    here. Under patch_stdout(raw=True), that extra newline causes the bottom
+    toolbar text to flush into the output stream before the table renders. Slash
+    commands start after the user presses Enter, so the cursor is already on a
+    fresh line; no extra line-feed is needed.
+    """
     return _repl_table_width(console)
 
 
@@ -107,6 +111,7 @@ def print_repl_table(console: Console, table: Table, *, width: int | None = None
     is used — preserving the caller's color_system and avoiding ANSI pollution
     in piped output.
     """
+    leading_blank = width is None
     width = width if width is not None else _prepare_tty_for_rich(console)
     if console.file is sys.stdout and sys.stdout.isatty():
         buf = io.StringIO()
@@ -123,6 +128,11 @@ def print_repl_table(console: Console, table: Table, *, width: int | None = None
         # first so partial Windows line-endings in cell content don't prevent the
         # remaining bare \n chars from being converted.
         rendered = rendered.replace("\r\n", "\n").replace("\n", "\r\n")
+        # Prepend blank line as part of the same write to avoid a separate
+        # patch_stdout proxy flush that can trigger a toolbar DSR query and
+        # leave stale CPR bytes in stdin for the next prompt.
+        if leading_blank:
+            rendered = "\r\n" + rendered
         token = _REPL_OUTPUT_PREPARED.set(True)
         try:
             sys.stdout.write(rendered)
@@ -130,6 +140,8 @@ def print_repl_table(console: Console, table: Table, *, width: int | None = None
         finally:
             _REPL_OUTPUT_PREPARED.reset(token)
     else:
+        if leading_blank:
+            _console_print_prepared(console)
         _console_print_prepared(console, table, width=width)
 
 
