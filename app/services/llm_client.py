@@ -41,6 +41,8 @@ from app.config import (
     ANTHROPIC_LLM_CONFIG,
     DEEPSEEK_BASE_URL,
     GEMINI_BASE_URL,
+    GROQ_BASE_URL,
+    GROQ_LLM_CONFIG,
     MINIMAX_BASE_URL,
     NVIDIA_BASE_URL,
     OPENAI_LLM_CONFIG,
@@ -1338,6 +1340,15 @@ def _create_llm_client(model_type: ModelType) -> _LLMClientType:
             base_url=MINIMAX_BASE_URL,
             api_key_env="MINIMAX_API_KEY",
             temperature=1.0,
+        )
+    elif provider == "groq":
+        config = GROQ_LLM_CONFIG
+        return OpenAILLMClient(
+            model=_select_model(settings, "groq", model_type),
+            model_fallback=_fallback_model("groq"),
+            max_tokens=config.max_tokens,
+            base_url=GROQ_BASE_URL,
+            api_key_env="GROQ_API_KEY",
         )
     elif provider == "ollama":
         from app.config import OLLAMA_LLM_CONFIG
