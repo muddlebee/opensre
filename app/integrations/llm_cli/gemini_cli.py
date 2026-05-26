@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import subprocess
 
 from app.integrations.llm_cli.base import CLIInvocation, CLIProbe
@@ -30,14 +29,22 @@ from app.integrations.llm_cli.binary_resolver import (
 from app.integrations.llm_cli.binary_resolver import (
     resolve_cli_binary,
 )
+from app.integrations.llm_cli.constants import (
+    DEFAULT_EXEC_TIMEOUT_SEC as _DEFAULT_EXEC_TIMEOUT_SEC,
+)
+from app.integrations.llm_cli.constants import (
+    MAX_EXEC_TIMEOUT_SEC as _MAX_EXEC_TIMEOUT_SEC,
+)
+from app.integrations.llm_cli.constants import (
+    MIN_EXEC_TIMEOUT_SEC as _MIN_EXEC_TIMEOUT_SEC,
+)
+from app.integrations.llm_cli.probe_utils import run_version_probe
+from app.integrations.llm_cli.semver_utils import parse_semver_three_part
 from app.integrations.llm_cli.subprocess_env import build_cli_subprocess_env
+from app.integrations.llm_cli.timeout_utils import resolve_timeout_from_env
 
-_GEMINI_VERSION_RE = re.compile(r"(\d+\.\d+\.\d+)")
 _PROBE_TIMEOUT_SEC = 20.0
 _AUTH_HINT = "Run: gemini (interactive login) or set GEMINI_API_KEY."
-_DEFAULT_EXEC_TIMEOUT_SEC = 120.0
-_MIN_EXEC_TIMEOUT_SEC = 30.0
-_MAX_EXEC_TIMEOUT_SEC = 600.0
 # Source: https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/
 _SUNSET_NOTE = (
     " Note: Gemini CLI stops serving Pro/Ultra and free users on 2026-06-18; "
@@ -45,22 +52,13 @@ _SUNSET_NOTE = (
 )
 
 
-def _parse_semver(text: str) -> str | None:
-    m = _GEMINI_VERSION_RE.search(text)
-    return m.group(1) if m else None
-
-
 def _resolve_exec_timeout_seconds() -> float:
-    raw = os.environ.get("GEMINI_CLI_TIMEOUT_SECONDS", "").strip()
-    if not raw:
-        return _DEFAULT_EXEC_TIMEOUT_SEC
-    try:
-        value = float(raw)
-    except ValueError:
-        return _DEFAULT_EXEC_TIMEOUT_SEC
-    if value <= 0:
-        return _DEFAULT_EXEC_TIMEOUT_SEC
-    return max(_MIN_EXEC_TIMEOUT_SEC, min(value, _MAX_EXEC_TIMEOUT_SEC))
+    return resolve_timeout_from_env(
+        env_key="GEMINI_CLI_TIMEOUT_SECONDS",
+        default=_DEFAULT_EXEC_TIMEOUT_SEC,
+        minimum=_MIN_EXEC_TIMEOUT_SEC,
+        maximum=_MAX_EXEC_TIMEOUT_SEC,
+    )
 
 
 def _gemini_auth_env_overrides() -> dict[str, str]:
@@ -153,36 +151,20 @@ class GeminiCLIAdapter:
         )
 
     def _probe_binary(self, binary_path: str) -> CLIProbe:
-        try:
-            ver_proc = subprocess.run(
-                [binary_path, "--version"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=_PROBE_TIMEOUT_SEC,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
+        version_output, version_error = run_version_probe(
+            binary_path,
+            timeout_sec=_PROBE_TIMEOUT_SEC,
+        )
+        if version_error:
             return CLIProbe(
                 installed=False,
                 version=None,
                 logged_in=None,
                 bin_path=None,
-                detail=f"Could not run `{binary_path} --version`: {exc}",
+                detail=version_error,
             )
 
-        if ver_proc.returncode != 0:
-            err = (ver_proc.stderr or ver_proc.stdout or "").strip()
-            return CLIProbe(
-                installed=False,
-                version=None,
-                logged_in=None,
-                bin_path=None,
-                detail=f"`{binary_path} --version` failed: {err or 'unknown error'}",
-            )
-
-        version = _parse_semver(ver_proc.stdout + ver_proc.stderr)
+        version = parse_semver_three_part(version_output or "")
         probe_env = build_cli_subprocess_env(_gemini_auth_env_overrides())
         try:
             auth_proc = subprocess.run(
